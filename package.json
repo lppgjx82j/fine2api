@@ -1,0 +1,13 @@
+{
+  "name": "fine2api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A lightweight Finest to OpenAI gateway with a fresh management console",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs --preview",
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check server.mjs && node --check proxy.js && node --check public/app.js"
+  }
+}
