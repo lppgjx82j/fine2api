@@ -1,0 +1,18 @@
+[project]
+name = "fine2api"
+version = "1.0.0"
+description = "CN E-Commerce Omni-Platform Intelligence Radar (Taobao, Tmall, JD, Pinduoduo, Xianyu, SMZDM) powered by Multi-Stream Tavily & Affiliate APIs + MCP"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.8.0",
+]
+
+[project.scripts]
+fine2api = "fine2api.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
