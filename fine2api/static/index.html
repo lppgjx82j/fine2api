@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fine2api · 全网电商商品智能比价与口碑总结雷达</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at top right, #1e1b4b, #0f172a 45%, #020617 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+    }
+    .platform-card:hover {
+      border-color: rgba(99, 102, 241, 0.55);
+      transform: translateY(-2px);
+      transition: all 0.2s ease;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-indigo-500 selection:text-white">
+  <!-- Top Navigation -->
+  <header class="border-b border-slate-800/80 bg-slate-950/60 sticky top-0 z-30 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center font-bold text-lg shadow-lg shadow-indigo-500/20">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-lg tracking-tight text-white">fine2api 智购雷达</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">
+              Tavily Multi-Stream + MCP
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">淘宝 · 天猫 · 京东 · 拼多多 · 闲鱼 · 什么值得买 全网价格与口碑聚合引擎</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div id="engine-status" class="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Tavily 引擎已就绪</span>
+        </div>
+        <button id="tab-single-btn" onclick="switchMode('single')" class="text-xs px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white font-medium transition">
+          单品全网深扒
+        </button>
+        <button id="tab-batch-btn" onclick="switchMode('batch')" class="text-xs px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition">
+          多品横向比价
+        </button>
+        <button id="tab-mcp-btn" onclick="switchMode('mcp')" class="text-xs px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition">
+          MCP / API 接入
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <!-- MODE 1: Single Product Deep Radar -->
+    <section id="section-single" class="space-y-6">
+      <div class="glass rounded-2xl p-6 sm:p-8 shadow-2xl">
+        <div class="max-w-3xl">
+          <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            全网电商商品大范围比价 & 真实口碑总结
+          </h1>
+          <p class="mt-2 text-sm text-slate-300 leading-relaxed">
+            无需维护高风险爬虫账号池：并发调用 <span class="text-indigo-300 font-medium">Tavily 深度检索引擎</span> 扫描
+            <span class="text-amber-300">淘宝/天猫、京东自营、拼多多百亿补贴、闲鱼二手、什么值得买、知乎/V2EX</span>，自动抽取国补/百亿补贴史低价、价格中位数与真实优缺点避坑指南。
+          </p>
+        </div>
+
+        <form id="analyze-form" onsubmit="runAnalyze(event)" class="mt-6 flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-1">
+            <input
+              id="keyword-input"
+              type="text"
+              required
+              placeholder="输入任意商品型号，例如：大疆 Osmo Pocket 3 / iPhone 16 Pro 256G / 索尼 WH-1000XM5"
+              value="大疆 Osmo Pocket 3"
+              class="w-full px-4 py-3.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 text-sm"
+            />
+          </div>
+          <button
+            id="analyze-submit-btn"
+            type="submit"
+            class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            <span>🚀 全网深度扫描</span>
+          </button>
+        </form>
+
+        <!-- Quick Presets -->
+        <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+          <span class="text-slate-400">热门商品一键实测：</span>
+          <button type="button" onclick="quickSearch('大疆 Osmo Pocket 3')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-500/20 hover:text-indigo-300 border border-slate-700/80 text-slate-300 transition">
+            📷 大疆 Osmo Pocket 3
+          </button>
+          <button type="button" onclick="quickSearch('iPhone 16 Pro 256G')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-500/20 hover:text-indigo-300 border border-slate-700/80 text-slate-300 transition">
+            📱 iPhone 16 Pro 256G
+          </button>
+          <button type="button" onclick="quickSearch('索尼 WH-1000XM5')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-500/20 hover:text-indigo-300 border border-slate-700/80 text-slate-300 transition">
+            🎧 索尼 WH-1000XM5
+          </button>
+          <button type="button" onclick="quickSearch('石头扫地机器人 P20 Pro')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-500/20 hover:text-indigo-300 border border-slate-700/80 text-slate-300 transition">
+            🤖 石头扫地机 P20 Pro
+          </button>
+          <button type="button" onclick="quickSearch('MacBook Air M3 16G 512G')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-500/20 hover:text-indigo-300 border border-slate-700/80 text-slate-300 transition">
+            💻 MacBook Air M3 16+512
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading Skeleton -->
+      <div id="loading-panel" class="hidden glass rounded-2xl p-8 text-center space-y-4">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-2xl animate-bounce">
+          🛰️
+        </div>
+        <h3 class="text-base font-semibold text-white">正在并发执行 3 路 Tavily 深度搜索流...</h3>
+        <p class="text-xs text-slate-400 max-w-xl mx-auto">
+          Stream 1: 京东/天猫/拼多多百亿补贴与国补好价 · Stream 2: 跨平台到手价与闲鱼二手均价 · Stream 3: 知乎/值得买/V2EX 真实评测与通病避坑
+        </p>
+      </div>
+
+      <!-- Report Container -->
+      <div id="report-container" class="hidden space-y-6">
+        <!-- Top KPI Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="glass rounded-2xl p-5 border-l-4 border-l-emerald-500">
+            <div class="text-xs text-slate-400">全网监测最低好价 / 补贴价</div>
+            <div id="kpi-lowest-price" class="mt-2 text-2xl font-extrabold text-emerald-400">--</div>
+            <div id="kpi-lowest-platform" class="mt-1 text-xs text-slate-300">--</div>
+          </div>
+          <div class="glass rounded-2xl p-5 border-l-4 border-l-indigo-500">
+            <div class="text-xs text-slate-400">全网日常中位价参考</div>
+            <div id="kpi-median-price" class="mt-2 text-2xl font-extrabold text-white">--</div>
+            <div id="kpi-sample-count" class="mt-1 text-xs text-slate-400">--</div>
+          </div>
+          <div class="glass rounded-2xl p-5 border-l-4 border-l-amber-500">
+            <div class="text-xs text-slate-400">闲鱼二手 / 历史低价锚点</div>
+            <div id="kpi-secondhand-price" class="mt-2 text-2xl font-extrabold text-amber-300">--</div>
+            <div id="kpi-hist-low" class="mt-1 text-xs text-slate-400">--</div>
+          </div>
+          <div class="glass rounded-2xl p-5 border-l-4 border-l-purple-500">
+            <div class="text-xs text-slate-400">AI 入手推荐指数</div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span id="kpi-buy-score" class="text-2xl font-extrabold text-purple-300">--</span>
+              <span class="text-xs text-slate-400">/ 100</span>
+            </div>
+            <div class="mt-1 text-xs text-emerald-300">支持导出完整 Markdown 报告</div>
+          </div>
+        </div>
+
+        <!-- Verdict & Executive Summary -->
+        <div class="glass rounded-2xl p-6 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
+            <div>
+              <h2 id="report-title" class="text-lg font-bold text-white">核心选购结论与多流总结</h2>
+              <p id="report-meta" class="text-xs text-slate-400 mt-0.5"></p>
+            </div>
+            <button
+              onclick="copyMarkdownReport()"
+              id="copy-md-btn"
+              class="text-xs px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 font-medium transition cursor-pointer"
+            >
+              📋 复制完整 Markdown 报告
+            </button>
+          </div>
+
+          <div class="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/25">
+            <div class="text-xs font-semibold text-indigo-300 uppercase tracking-wider">💡 一针见血选购建议</div>
+            <p id="report-verdict" class="mt-1 text-sm text-white font-medium leading-relaxed"></p>
+          </div>
+
+          <div id="report-exec-summary" class="text-sm text-slate-300 leading-relaxed whitespace-pre-line"></div>
+        </div>
+
+        <!-- Platform Matrix Table -->
+        <div class="glass rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-white">🏬 跨平台比价矩阵（淘宝 / 天猫 / 京东 / 拼多多 / 闲鱼 / 值得买）</h2>
+            <span class="text-xs text-slate-400">自动过滤满减券面额与配件干扰项</span>
+          </div>
+          <div id="platform-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- Pros / Cons / Pitfalls -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="glass rounded-2xl p-5 space-y-3">
+            <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">👍 真实买家好评亮点</h3>
+            <ul id="pros-list" class="space-y-2.5 text-xs text-slate-300"></ul>
+          </div>
+          <div class="glass rounded-2xl p-5 space-y-3">
+            <h3 class="text-sm font-bold text-rose-400 flex items-center gap-2">👎 常见槽点与缺点</h3>
+            <ul id="cons-list" class="space-y-2.5 text-xs text-slate-300"></ul>
+          </div>
+          <div class="glass rounded-2xl p-5 space-y-3">
+            <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">⚠️ 选购与渠道避坑指南</h3>
+            <ul id="pitfalls-list" class="space-y-2.5 text-xs text-slate-300"></ul>
+          </div>
+        </div>
+
+        <!-- Extracted Price Mentions & Source Evidence -->
+        <div class="glass rounded-2xl p-6 space-y-4">
+          <h2 class="text-lg font-bold text-white">🔗 全网原始好价爆料与评测证据链</h2>
+          <div id="sources-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODE 2: Batch Product Comparison -->
+    <section id="section-batch" class="hidden space-y-6">
+      <div class="glass rounded-2xl p-6 sm:p-8 space-y-4">
+        <h2 class="text-xl font-bold text-white">📊 多商品同品类横向比价雷达</h2>
+        <p class="text-xs text-slate-400">
+          一次输入 2~4 个候选商品（每行一个或用逗号分隔），系统将并发拉取各商品在淘宝、京东、拼多多的最低价与中位价进行横向对比。
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input
+            id="batch-input"
+            type="text"
+            value="索尼 WH-1000XM5, Bose QC Ultra 头戴式, 森海塞尔 Momentum 4"
+            class="flex-1 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white"
+            placeholder="用逗号分隔多个商品型号"
+          />
+          <button
+            onclick="runBatchCompare()"
+            id="batch-submit-btn"
+            class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold cursor-pointer"
+          >
+            ⚡ 开始批量横评
+          </button>
+        </div>
+        <div id="batch-results" class="mt-4 overflow-x-auto"></div>
+      </div>
+    </section>
+
+    <!-- MODE 3: MCP & API Integration -->
+    <section id="section-mcp" class="hidden space-y-6">
+      <div class="glass rounded-2xl p-6 sm:p-8 space-y-5">
+        <div>
+          <h2 class="text-xl font-bold text-white">🔌 MCP Server 与导购开放平台接入说明</h2>
+          <p class="text-xs text-slate-400 mt-1">
+            本项目同时提供标准 **Model Context Protocol (MCP)** 服务（支持 Claude Desktop、Cursor、Windsurf 等 AI 客户端直接调用）以及标准 REST API。
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+            <div class="text-xs font-semibold text-indigo-300">1. Claude Desktop / Cursor MCP 配置 (stdio 模式)</div>
+            <pre class="text-xs text-slate-300 overflow-x-auto p-3 rounded-lg bg-slate-950">{
+  "mcpServers": {
+    "fine2api-cn-ecommerce": {
+      "command": "python3",
+      "args": ["-m", "fine2api.cli", "mcp"],
+      "env": {
+        "TAVILY_API_KEY": "tvly-your-key"
+      }
+    }
+  }
+}</pre>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+            <div class="text-xs font-semibold text-emerald-300">2. CLI 命令行与 HTTP MCP 端点调用</div>
+            <pre class="text-xs text-slate-300 overflow-x-auto p-3 rounded-lg bg-slate-950"># 命令行一键输出商品全网比价 Markdown 报告
+python3 -m fine2api.cli search "大疆 Osmo Pocket 3"
+
+# HTTP JSON-RPC 2.0 MCP 工具列表查询
+curl -X POST http://localhost:8000/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let latestMarkdownReport = "";
+
+    function switchMode(mode) {
+      ["single", "batch", "mcp"].forEach((m) => {
+        document.getElementById(`section-${m}`).classList.toggle("hidden", m !== mode);
+        const btn = document.getElementById(`tab-${m}-btn`);
+        if (m === mode) {
+          btn.className = "text-xs px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white font-medium transition";
+        } else {
+          btn.className = "text-xs px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition";
+        }
+      });
+    }
+
+    function quickSearch(kw) {
+      document.getElementById("keyword-input").value = kw;
+      document.getElementById("analyze-form").requestSubmit();
+    }
+
+    async function runAnalyze(e) {
+      if (e) e.preventDefault();
+      const kw = document.getElementById("keyword-input").value.trim();
+      if (!kw) return;
+
+      const btn = document.getElementById("analyze-submit-btn");
+      const loading = document.getElementById("loading-panel");
+      const reportEl = document.getElementById("report-container");
+
+      btn.disabled = true;
+      btn.innerHTML = "<span>⏳ 正在扫描全网电商...</span>";
+      loading.classList.remove("hidden");
+      reportEl.classList.add("hidden");
+
+      try {
+        const resp = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keyword: kw, deep_mode: true }),
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.detail || "请求失败");
+        }
+        const data = await resp.json();
+        renderReport(data);
+      } catch (err) {
+        alert("分析出错: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "<span>🚀 全网深度扫描</span>";
+        loading.classList.add("hidden");
+      }
+    }
+
+    function renderReport(data) {
+      latestMarkdownReport = data.markdown_report || "";
+      const reportEl = document.getElementById("report-container");
+      reportEl.classList.remove("hidden");
+
+      document.getElementById("kpi-lowest-price").textContent =
+        data.global_lowest_price ? `¥${data.global_lowest_price.toFixed(0)}` : "暂无报价";
+      document.getElementById("kpi-lowest-platform").textContent =
+        data.global_lowest_platform ? `最优渠道: ${data.global_lowest_platform}` : "建议参考各平台补贴";
+
+      document.getElementById("kpi-median-price").textContent =
+        data.global_median_price ? `¥${data.global_median_price.toFixed(0)}` : "--";
+      document.getElementById("kpi-sample-count").textContent =
+        `共提取 ${data.stats?.total_price_samples || 0} 个有效价格点 · ${data.stats?.total_sources || 0} 篇来源`;
+
+      document.getElementById("kpi-secondhand-price").textContent =
+        data.secondhand_estimate
+          ? `¥${data.secondhand_estimate.toFixed(0)} (闲鱼)`
+          : data.historical_low_estimate
+          ? `¥${data.historical_low_estimate.toFixed(0)} (史低)`
+          : "--";
+      document.getElementById("kpi-hist-low").textContent =
+        data.historical_low_estimate ? `全网补贴/史低锚点: ¥${data.historical_low_estimate.toFixed(0)}` : "暂无明确史低记录";
+
+      document.getElementById("kpi-buy-score").textContent = data.buy_timing_score || 78;
+      document.getElementById("report-title").textContent = `「${data.query}」全网比价与口碑总结`;
+      document.getElementById("report-meta").textContent = `生成时间：${data.generated_at} · 检索引擎：Tavily Multi-Stream`;
+      document.getElementById("report-verdict").textContent = data.buy_verdict || "";
+      document.getElementById("report-exec-summary").textContent = data.executive_summary || "";
+
+      // Render Platform Cards
+      const grid = document.getElementById("platform-cards-grid");
+      grid.innerHTML = "";
+      (data.platform_matrix || []).forEach((p) => {
+        const hasPrice = p.lowest_price !== null && p.lowest_price !== undefined;
+        const card = document.createElement("div");
+        card.className = "platform-card rounded-xl p-4 bg-slate-900/85 border border-slate-800 flex flex-col justify-between space-y-3";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-bold text-sm text-white">${p.platform}</span>
+              <span class="text-[11px] px-2 py-0.5 rounded-md ${
+                hasPrice ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" : "bg-slate-800 text-slate-400"
+              }">${p.best_deal_tag}</span>
+            </div>
+            <div class="mt-3 flex items-baseline gap-4">
+              <div>
+                <div class="text-[11px] text-slate-400">最低好价</div>
+                <div class="text-xl font-extrabold ${hasPrice ? "text-emerald-400" : "text-slate-500"}">
+                  ${hasPrice ? "¥" + p.lowest_price.toFixed(0) : "未检出"}
+                </div>
+              </div>
+              <div>
+                <div class="text-[11px] text-slate-400">中位价</div>
+                <div class="text-sm font-semibold text-slate-200">
+                  ${p.median_price ? "¥" + p.median_price.toFixed(0) : "-"}
+                </div>
+              </div>
+              <div>
+                <div class="text-[11px] text-slate-400">样本数</div>
+                <div class="text-sm font-semibold text-slate-300">${p.sample_count}</div>
+              </div>
+            </div>
+            ${
+              p.best_deal_context
+                ? `<p class="mt-2.5 text-xs text-slate-300 line-clamp-2 bg-slate-950/70 p-2 rounded-lg border border-slate-800/80">${p.best_deal_context}</p>`
+                : ""
+            }
+          </div>
+          <div class="pt-2 border-t border-slate-800/80 space-y-1">
+            ${(p.subsidy_tips || [])
+              .map((t) => `<div class="text-[11px] text-slate-400">• ${t}</div>`)
+              .join("")}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      // Render Sentiment Lists
+      const renderSentiment = (elId, items, emptyText) => {
+        const ul = document.getElementById(elId);
+        ul.innerHTML = "";
+        if (!items || items.length === 0) {
+          ul.innerHTML = `<li class="text-slate-500">${emptyText}</li>`;
+          return;
+        }
+        items.forEach((it) => {
+          const li = document.createElement("li");
+          li.className = "p-2.5 rounded-lg bg-slate-900/75 border border-slate-800/80 leading-relaxed";
+          li.innerHTML = `
+            <div>${it.point}</div>
+            ${
+              it.source_url
+                ? `<a href="${it.source_url}" target="_blank" class="text-[11px] text-indigo-400 hover:underline mt-1 inline-block">来源: ${
+                    it.source_title || "查看原文"
+                  } ↗</a>`
+                : ""
+            }
+          `;
+          ul.appendChild(li);
+        });
+      };
+
+      renderSentiment("pros-list", data.pros, "暂未提取到特定优点条目，请参考上方综合摘要。");
+      renderSentiment("cons-list", data.cons, "暂未检出明显通病或高频差评。");
+      renderSentiment("pitfalls-list", data.pitfalls, "建议认准京东自营、天猫官旗或拼多多百亿补贴品牌黑标。");
+
+      // Render Sources
+      const srcList = document.getElementById("sources-list");
+      srcList.innerHTML = "";
+      (data.sources || []).slice(0, 12).forEach((s) => {
+        const div = document.createElement("div");
+        div.className = "p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between gap-2";
+        const priceBadges = (s.extracted_prices || [])
+          .map((p) => `<span class="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[11px] font-medium">¥${p}</span>`)
+          .join(" ");
+        div.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium">${s.platform_badge}</span>
+              <div class="flex gap-1 flex-wrap">${priceBadges}</div>
+            </div>
+            <a href="${s.url}" target="_blank" class="mt-1.5 block text-xs font-semibold text-white hover:text-indigo-300 line-clamp-1">
+              ${s.title} ↗
+            </a>
+            <p class="mt-1 text-[11px] text-slate-400 line-clamp-2">${s.snippet}</p>
+          </div>
+        `;
+        srcList.appendChild(div);
+      });
+    }
+
+    async function copyMarkdownReport() {
+      if (!latestMarkdownReport) return;
+      await navigator.clipboard.writeText(latestMarkdownReport);
+      const btn = document.getElementById("copy-md-btn");
+      const old = btn.textContent;
+      btn.textContent = "✅ 已复制 Markdown 报告";
+      setTimeout(() => (btn.textContent = old), 2000);
+    }
+
+    async function runBatchCompare() {
+      const raw = document.getElementById("batch-input").value;
+      const keywords = raw
+        .split(/[,，\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (keywords.length === 0) return;
+
+      const btn = document.getElementById("batch-submit-btn");
+      const box = document.getElementById("batch-results");
+      btn.disabled = true;
+      btn.textContent = "⏳ 正在并发横评...";
+      box.innerHTML = `<div class="text-xs text-slate-400 py-6 text-center">正在并发扫描 ${keywords.length} 款商品的全网电商数据...</div>`;
+
+      try {
+        const resp = await fetch("/api/batch-compare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keywords }),
+        });
+        const data = await resp.json();
+        const rows = (data.reports || [])
+          .map(
+            (r) => `
+          <tr class="border-t border-slate-800 text-xs">
+            <td class="py-3 px-4 font-bold text-white">${r.query}</td>
+            <td class="py-3 px-4 text-emerald-400 font-bold">${r.global_lowest_price ? "¥" + r.global_lowest_price.toFixed(0) : "-"}</td>
+            <td class="py-3 px-4 text-slate-300">${r.global_lowest_platform || "-"}</td>
+            <td class="py-3 px-4 text-slate-200">${r.global_median_price ? "¥" + r.global_median_price.toFixed(0) : "-"}</td>
+            <td class="py-3 px-4 text-purple-300 font-semibold">${r.buy_timing_score}/100</td>
+            <td class="py-3 px-4 text-slate-300 max-w-md">${r.buy_verdict}</td>
+          </tr>`
+          )
+          .join("");
+        box.innerHTML = `
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="text-xs text-slate-400 border-b border-slate-800">
+                <th class="py-2.5 px-4">商品型号</th>
+                <th class="py-2.5 px-4">全网最低价</th>
+                <th class="py-2.5 px-4">最优渠道</th>
+                <th class="py-2.5 px-4">日常中位价</th>
+                <th class="py-2.5 px-4">推荐指数</th>
+                <th class="py-2.5 px-4">选购结论</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      } catch (e) {
+        box.innerHTML = `<div class="text-xs text-rose-400">横评失败: ${e.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "⚡ 开始批量横评";
+      }
+    }
+
+    // Automatically run initial demo query on page load
+    window.addEventListener("DOMContentLoaded", () => {
+      runAnalyze();
+    });
+  </script>
+</body>
+</html>
